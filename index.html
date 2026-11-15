@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
@@ -105,7 +105,7 @@
 
     const statusBar = document.getElementById("status-bar");
     const META_KEY = "com.custom.tv-zones/isZone";
-    const CHANNEL = "com.custom.tv-zones/broadcast";
+    const CMD_KEY = "com.custom.tv-zones/targetBounds";
     const COLORS = [
       { hex: "#ef4444", name: "Красная" },
       { hex: "#3b82f6", name: "Синяя" },
@@ -115,14 +115,19 @@
       { hex: "#ec4899", name: "Розовая" }
     ];
 
+    let lastTimestamp = 0;
+
     OBR.onReady(async () => {
       try {
         const role = await OBR.player.getRole();
 
-        OBR.broadcast.onMessage(CHANNEL, async (event) => {
+        // Слушатель команд для ТВ через метаданные сцены (работает на любой версии SDK)
+        OBR.scene.onMetadataChange(async (metadata) => {
           const currentRole = await OBR.player.getRole();
-          if (currentRole === "PLAYER" && event.data && event.data.bounds) {
-            await OBR.viewport.animateToBounds(event.data.bounds);
+          const cmd = metadata[CMD_KEY];
+          if (currentRole === "PLAYER" && cmd && cmd.timestamp > lastTimestamp) {
+            lastTimestamp = cmd.timestamp;
+            await OBR.viewport.animateToBounds(cmd.bounds);
           }
         });
 
@@ -218,11 +223,12 @@
             tvBtn.textContent = "📺 На ТВ";
             tvBtn.onclick = async () => {
               const bounds = await OBR.scene.items.getItemBounds([zone.id]);
-              await OBR.broadcast.sendMessage(
-                CHANNEL,
-                { bounds },
-                { destination: "REMOTE" }
-              );
+              await OBR.scene.setMetadata({
+                [CMD_KEY]: {
+                  bounds: bounds,
+                  timestamp: Date.now()
+                }
+              });
             };
 
             const lockBtn = document.createElement("button");
@@ -262,4 +268,4 @@
     });
   </script>
 </body>
-</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    CTR                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      </html>
+</html>
