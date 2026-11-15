@@ -105,7 +105,6 @@
 
     const statusBar = document.getElementById("status-bar");
     const META_KEY = "com.custom.tv-zones/isZone";
-    const CMD_KEY = "com.custom.tv-zones/targetBounds";
     const COLORS = [
       { hex: "#ef4444", name: "Красная" },
       { hex: "#3b82f6", name: "Синяя" },
@@ -115,34 +114,24 @@
       { hex: "#ec4899", name: "Розовая" }
     ];
 
-    let lastTimestamp = 0;
+    let lastFocusTime = Date.now();
 
     OBR.onReady(async () => {
       try {
         const role = await OBR.player.getRole();
 
-        // Слушатель команд для ТВ через метаданные сцены (работает на любой версии SDK)
-        OBR.scene.onMetadataChange(async (metadata) => {
-          const currentRole = await OBR.player.getRole();
-          const cmd = metadata[CMD_KEY];
-          if (currentRole === "PLAYER" && cmd && cmd.timestamp > lastTimestamp) {
-            lastTimestamp = cmd.timestamp;
-            await OBR.viewport.animateToBounds(cmd.bounds);
-          }
-        });
-
         if (role === "PLAYER") {
           document.getElementById("gm-ui").style.display = "none";
           document.getElementById("player-ui").style.display = "block";
-          return;
+        } else {
+          statusBar.textContent = "Готово к работе (Мастер)";
+          statusBar.style.color = "#10b981";
         }
-
-        statusBar.textContent = "Готово к работе (Мастер)";
-        statusBar.style.color = "#10b981";
 
         const addBtn = document.getElementById("add-zone");
         const container = document.getElementById("zones-container");
 
+        // Создание новой цветной рамки
         addBtn.addEventListener("click", async () => {
           const isReady = await OBR.scene.isReady();
           if (!isReady) {
@@ -180,7 +169,8 @@
               [META_KEY]: {
                 index: zoneNumber,
                 color: colorObj.hex,
-                title: `Зона ${zoneNumber} (${colorObj.name})`
+                title: `Зона ${zoneNumber} (${colorObj.name})`,
+                focusTime: 0
               }
             })
             .build();
@@ -196,8 +186,24 @@
           );
         }
 
-        async function renderZones() {
+        async function handleItemsChange() {
           const zones = await getZoneItems();
+          const currentRole = await OBR.player.getRole();
+
+          // Если это экран ТВ (Игрок) — проверяем, не нажал ли Мастер кнопку "На ТВ"
+          if (currentRole === "PLAYER") {
+            for (const zone of zones) {
+              const meta = zone.metadata[META_KEY];
+              if (meta && meta.focusTime && meta.focusTime > lastFocusTime) {
+                lastFocusTime = meta.focusTime;
+                const bounds = await OBR.scene.items.getItemBounds([zone.id]);
+                await OBR.viewport.animateToBounds(bounds);
+              }
+            }
+            return;
+          }
+
+          // Отрисовка списка для Мастера
           container.innerHTML = "";
 
           if (zones.length === 0) {
@@ -218,15 +224,14 @@
             const btnGroup = document.createElement("div");
             btnGroup.className = "btn-group";
 
+            // Кнопка отправки на ТВ (записывает метку времени прямо в рамку)
             const tvBtn = document.createElement("button");
             tvBtn.className = "btn btn-tv";
             tvBtn.textContent = "📺 На ТВ";
             tvBtn.onclick = async () => {
-              const bounds = await OBR.scene.items.getItemBounds([zone.id]);
-              await OBR.scene.setMetadata({
-                [CMD_KEY]: {
-                  bounds: bounds,
-                  timestamp: Date.now()
+              await OBR.scene.items.updateItems([zone.id], (items) => {
+                for (let item of items) {
+                  item.metadata[META_KEY].focusTime = Date.now();
                 }
               });
             };
@@ -255,12 +260,12 @@
           });
         }
 
-        OBR.scene.items.onChange(renderZones);
+        OBR.scene.items.onChange(handleItemsChange);
         OBR.scene.onReadyChange((ready) => {
-          if (ready) renderZones();
+          if (ready) handleItemsChange();
         });
 
-        renderZones();
+        handleItemsChange();
       } catch (err) {
         statusBar.textContent = "Ошибка: " + err.message;
         statusBar.style.color = "#ef4444";
