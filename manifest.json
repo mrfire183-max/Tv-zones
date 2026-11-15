@@ -1,14 +1,14 @@
 {
-  "name": "TV Camera Zones",
-  "version": "1.0.6",
+  "name": "TV Zones v6",
+  "version": "1.0.7",
   "manifest_version": 1,
   "author": "GM Custom Tool",
   "description": "Цветные рамки зон для быстрого вывода и масштабирования карты на экране ТВ",
   "icon": "https://mrfire183-max.github.io/Tv-zones/icon.svg",
   "action": {
-    "title": "Зоны ТВ",
+    "title": "Зоны ТВ v6",
     "icon": "https://mrfire183-max.github.io/Tv-zones/icon.svg",
-    "popover": "https://mrfire183-max.github.io/Tv-zones/index.html?v=5",
+    "popover": "https://mrfire183-max.github.io/Tv-zones/index.html?v=6",
     "height": 420,
     "width": 320
   }
