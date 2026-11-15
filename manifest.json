@@ -8,7 +8,7 @@
   "action": {
     "title": "Зоны ТВ",
     "icon": "https://mrfire183-max.github.io/Tv-zones/icon.svg",
-    "popover": "https://mrfire183-max.github.io/Tv-zones/index.html",
+    "popover": "https://mrfire183-max.github.io/Tv-zones/index.html?v=4",
     "height": 420,
     "width": 320
   }
